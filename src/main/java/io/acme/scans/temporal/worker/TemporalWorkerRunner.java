@@ -1,8 +1,10 @@
 package io.acme.scans.temporal.worker;
 
 import io.acme.scans.config.TemporalConfig;
+import io.acme.scans.temporal.activity.DtPrescanActivitiesImpl;
 import io.acme.scans.temporal.activity.SastScanActivitiesImpl;
 import io.acme.scans.temporal.activity.ScaManifestScanActivitiesImpl;
+import io.acme.scans.temporal.workflow.DtPrescanWorkflowImpl;
 import io.acme.scans.temporal.workflow.SastScanWorkflowImpl;
 import io.acme.scans.temporal.workflow.ScaManifestScanWorkflowImpl;
 import io.temporal.client.WorkflowClient;
@@ -22,15 +24,18 @@ public class TemporalWorkerRunner {
     private final WorkerFactory factory;
 
     public TemporalWorkerRunner(WorkflowClient workflowClient, TemporalConfig config,
+                                DtPrescanActivitiesImpl dtPrescanActivities,
                                 SastScanActivitiesImpl sastActivities,
                                 ScaManifestScanActivitiesImpl scaManifestActivities) {
         this.factory = WorkerFactory.newInstance(workflowClient);
         Worker worker = factory.newWorker(config.taskQueue());
         worker.registerWorkflowImplementationTypes(
+                DtPrescanWorkflowImpl.class,
                 SastScanWorkflowImpl.class,
                 ScaManifestScanWorkflowImpl.class
         );
         worker.registerActivitiesImplementations(
+                dtPrescanActivities,
                 sastActivities,
                 scaManifestActivities
         );

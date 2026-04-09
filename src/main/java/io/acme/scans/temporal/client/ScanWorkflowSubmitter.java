@@ -3,6 +3,7 @@ package io.acme.scans.temporal.client;
 import io.acme.scans.config.TemporalConfig;
 import io.acme.scans.domain.ScanRequest;
 import io.acme.scans.domain.ScanTool;
+import io.acme.scans.temporal.workflow.DtPrescanWorkflow;
 import io.acme.scans.temporal.workflow.SastScanWorkflow;
 import io.acme.scans.temporal.workflow.ScaManifestScanWorkflow;
 import io.temporal.client.WorkflowClient;
@@ -32,6 +33,19 @@ public class ScanWorkflowSubmitter {
             return;
         }
         if (request.tool() == ScanTool.SCA_MANIFEST) {
+            // DT pre-scan runs in parallel with the SCA manifest workflow.
+            WorkflowOptions dtOptions = WorkflowOptions.newBuilder()
+                    .setTaskQueue(temporalConfig.taskQueue())
+                    .setWorkflowId("scan:DT_PRESCAN:%s:%s:%s".formatted(
+                            request.appId(),
+                            WorkflowIds.encode(request.componentName()),
+                            WorkflowIds.encode(request.buildId())
+                    ))
+                    .build();
+
+            DtPrescanWorkflow dt = workflowClient.newWorkflowStub(DtPrescanWorkflow.class, dtOptions);
+            WorkflowClient.start(dt::run, request);
+
             ScaManifestScanWorkflow wf = workflowClient.newWorkflowStub(ScaManifestScanWorkflow.class, options);
             WorkflowClient.start(wf::run, request);
             return;

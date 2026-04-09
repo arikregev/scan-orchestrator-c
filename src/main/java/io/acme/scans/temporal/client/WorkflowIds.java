@@ -19,6 +19,10 @@ public final class WorkflowIds {
         );
     }
 
+    public static String encode(String s) {
+        return pct(s);
+    }
+
     private static String pct(String s) {
         if (s == null) return "null";
         // Minimal percent-encoding for common delimiters/spaces.
