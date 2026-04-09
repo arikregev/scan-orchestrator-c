@@ -46,7 +46,7 @@ class WorkflowUnitTest {
         var wf = client.newWorkflowStub(SastScanWorkflow.class,
                 io.temporal.client.WorkflowOptions.newBuilder().setTaskQueue("test-queue").build());
 
-        var result = wf.run(new ScanRequest(1, "comp", "build", ScanTool.SAST, null, null, null, "evt"));
+        var result = wf.run(new ScanRequest(1, "comp", "build", ScanTool.SAST, null, null, null, null, "evt"));
         assertEquals(ScanTool.SAST, result.tool());
         assertEquals("sast-1", result.scanId());
         assertEquals("SUBMITTED", result.status());
@@ -73,7 +73,7 @@ class WorkflowUnitTest {
         var wf = client.newWorkflowStub(ScaManifestScanWorkflow.class,
                 io.temporal.client.WorkflowOptions.newBuilder().setTaskQueue("test-queue-2").build());
 
-        var result = wf.run(new ScanRequest(1, "comp", "build", ScanTool.SCA_MANIFEST, null, null, null, "evt"));
+        var result = wf.run(new ScanRequest(1, "comp", "build", ScanTool.SCA_MANIFEST, null, null, null, null, "evt"));
         assertEquals(ScanTool.SCA_MANIFEST, result.tool());
         assertEquals("sca-1", result.scanId());
         assertEquals("SUBMITTED", result.status());

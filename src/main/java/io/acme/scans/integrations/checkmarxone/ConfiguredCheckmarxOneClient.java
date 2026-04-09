@@ -4,11 +4,16 @@ import io.acme.scans.config.CheckmarxOneConfig;
 import io.acme.scans.domain.ScanRequest;
 import io.acme.scans.domain.ScanTool;
 import io.acme.scans.integrations.checkmarxone.auth.CheckmarxOneAuthHeaderProvider;
+import io.acme.scans.integrations.checkmarxone.api.CxOneScanInput;
+import io.acme.scans.integrations.checkmarxone.api.CxOneScansApi;
+import io.acme.scans.integrations.checkmarxone.api.CxOneUploadsApi;
+import io.acme.scans.integrations.checkmarxone.api.CxOneProjectsApi;
 import io.acme.scans.integrations.checkmarxsca.ScaCreateProjectRequest;
 import io.acme.scans.integrations.checkmarxsca.ScaProjectsApi;
 import io.acme.scans.integrations.checkmarxsca.ScaScanRequest;
 import io.acme.scans.integrations.checkmarxsca.ScaScansApi;
 import io.acme.scans.integrations.checkmarxsca.ScaUploadsApi;
+import io.acme.scans.integrations.http.HttpGetDownloader;
 import io.acme.scans.integrations.http.HttpPutUploader;
 import io.acme.scans.config.CheckmarxScaConfig;
 import io.acme.scans.integrations.sbom.SbomFetcher;
@@ -34,6 +39,10 @@ public class ConfiguredCheckmarxOneClient implements CheckmarxOneClient {
     private final ScaScansApi scaScansApi;
     private final HttpPutUploader uploader;
     private final SbomFetcher sbomFetcher;
+    private final HttpGetDownloader downloader;
+    private final CxOneUploadsApi cxOneUploadsApi;
+    private final CxOneScansApi cxOneScansApi;
+    private final CxOneProjectsApi cxOneProjectsApi;
 
     public ConfiguredCheckmarxOneClient(CheckmarxOneConfig config,
                                         CheckmarxOneAuthHeaderProvider authHeaderProvider,
@@ -42,7 +51,11 @@ public class ConfiguredCheckmarxOneClient implements CheckmarxOneClient {
                                         @RestClient ScaProjectsApi scaProjectsApi,
                                         @RestClient ScaScansApi scaScansApi,
                                         HttpPutUploader uploader,
-                                        SbomFetcher sbomFetcher) {
+                                        SbomFetcher sbomFetcher,
+                                        HttpGetDownloader downloader,
+                                        @RestClient CxOneUploadsApi cxOneUploadsApi,
+                                        @RestClient CxOneScansApi cxOneScansApi,
+                                        @RestClient CxOneProjectsApi cxOneProjectsApi) {
         this.config = config;
         this.authHeaderProvider = authHeaderProvider;
         this.scaConfig = scaConfig;
@@ -51,6 +64,10 @@ public class ConfiguredCheckmarxOneClient implements CheckmarxOneClient {
         this.scaScansApi = scaScansApi;
         this.uploader = uploader;
         this.sbomFetcher = sbomFetcher;
+        this.downloader = downloader;
+        this.cxOneUploadsApi = cxOneUploadsApi;
+        this.cxOneScansApi = cxOneScansApi;
+        this.cxOneProjectsApi = cxOneProjectsApi;
     }
 
     @Override
@@ -82,8 +99,33 @@ public class ConfiguredCheckmarxOneClient implements CheckmarxOneClient {
             return scanResp.id();
         }
 
-        // SAST + others: still stubbed until we wire Checkmarx One /api/scans payload from Stoplight schema.
-        LOG.debugf("Checkmarx One submitScan stub (pending /api/scans wiring). baseUrl=%s, tool=%s, authHeaderPrefix=%s",
+        if (tool == ScanTool.SAST) {
+            if (request.sourceUrl() == null || request.sourceUrl().isBlank()) {
+                throw new IllegalArgumentException("Missing source_url for SAST submission");
+            }
+
+            // 1) generate upload link
+            var uploadLink = cxOneUploadsApi.createUploadLink();
+            // 2) download source zip and upload to presigned URL
+            byte[] zipBytes = downloader.getBytes(request.sourceUrl());
+            uploader.putZip(uploadLink.url(), auth, zipBytes);
+
+            // 3) create scan
+            String branch = (request.branchName() == null || request.branchName().isBlank()) ? "main" : request.branchName();
+            String projectId = resolveProjectIdBestEffort(request.componentName());
+
+            var scanInput = new CxOneScanInput(
+                    projectId,
+                    branch,
+                    "upload",
+                    new CxOneScanInput.Handler(uploadLink.url()),
+                    List.of(new CxOneScanInput.ConfigItem("sast", java.util.Map.of("incremental", false)))
+            );
+            var resp = cxOneScansApi.create(scanInput);
+            return resp.id() == null ? ("sast-" + UUID.randomUUID()) : resp.id();
+        }
+
+        LOG.debugf("Checkmarx One submitScan stub (unsupported tool for now). baseUrl=%s, tool=%s, authHeaderPrefix=%s",
                 config.baseUrl(), tool, auth.split(" ")[0]);
         return tool.name().toLowerCase() + "-" + UUID.randomUUID();
     }
@@ -93,6 +135,28 @@ public class ConfiguredCheckmarxOneClient implements CheckmarxOneClient {
         // Phase 1: stub status.
         authHeaderProvider.authorizationHeaderValue();
         return "SUBMITTED";
+    }
+
+    private String resolveProjectIdBestEffort(String componentName) {
+        try {
+            var list = cxOneProjectsApi.list(componentName);
+            if (list != null && list.projects() != null) {
+                for (var p : list.projects()) {
+                    if (p != null && componentName.equals(p.name()) && p.id() != null && !p.id().isBlank()) {
+                        return p.id();
+                    }
+                }
+                for (var p : list.projects()) {
+                    if (p != null && p.id() != null && !p.id().isBlank()) {
+                        return p.id();
+                    }
+                }
+            }
+        } catch (Exception e) {
+            LOG.warnf("Failed to resolve Checkmarx One projectId by name=%s. You may need to adjust Projects API query parameters. error=%s",
+                    componentName, e.toString());
+        }
+        throw new IllegalStateException("Unable to resolve Checkmarx One projectId for componentName=" + componentName);
     }
 
     private static byte[] zipSingleJson(String filename, byte[] jsonBytes) {

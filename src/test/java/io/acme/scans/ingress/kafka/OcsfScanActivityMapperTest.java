@@ -22,7 +22,8 @@ class OcsfScanActivityMapperTest {
                     { "key": "branch_name", "value": { "string_value": "main" } },
                     { "key": "build_id", "value": { "string_value": "69662bffca01a04b3436f2e0" } },
                     { "key": "code_repository_url", "value": { "string_value": "https://github.com/company/my-application.git" } },
-                    { "key": "git_commit_id", "value": { "string_value": "a1b2c3d4e5" } }
+                    { "key": "git_commit_id", "value": { "string_value": "a1b2c3d4e5" } },
+                    { "key": "source_url", "value": { "string_value": "http://example.local/source.zip" } }
                   ]
                 }
                 """;
@@ -37,6 +38,7 @@ class OcsfScanActivityMapperTest {
         assertEquals("https://github.com/company/my-application.git", req.repoUrl());
         assertEquals("a1b2c3d4e5", req.commitSha());
         assertEquals("main", req.branchName());
+        assertEquals("http://example.local/source.zip", req.sourceUrl());
         assertEquals("evt-123", req.originalEventUid());
     }
 }

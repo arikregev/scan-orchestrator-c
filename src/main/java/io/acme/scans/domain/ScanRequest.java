@@ -11,6 +11,7 @@ public record ScanRequest(
         String repoUrl,
         String commitSha,
         String branchName,
+        String sourceUrl,
         String originalEventUid
 ) {
 }

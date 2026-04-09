@@ -37,6 +37,7 @@ public class OcsfScanActivityMapper {
         String repoUrl = optFieldStringValue(root, "code_repository_url").orElse(null);
         String commitSha = optFieldStringValue(root, "git_commit_id").orElse(null);
         String branchName = optFieldStringValue(root, "branch_name").orElse(null);
+        String sourceUrl = optFieldStringValue(root, "source_url").orElse(null);
         String originalEventUid = optText(root, "metadata", "original_event_uid").orElse(null);
 
         ScanTool tool = optText(root, "scan", "type")
@@ -44,7 +45,7 @@ public class OcsfScanActivityMapper {
                 .map(OcsfScanActivityMapper::toTool)
                 .orElse(null);
 
-        return new ScanRequest(appId, componentName, buildId, tool, repoUrl, commitSha, branchName, originalEventUid);
+        return new ScanRequest(appId, componentName, buildId, tool, repoUrl, commitSha, branchName, sourceUrl, originalEventUid);
     }
 
     private static ScanTool toTool(String scanTypeUpper) {
