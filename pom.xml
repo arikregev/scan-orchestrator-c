@@ -93,11 +93,22 @@
 
     <build>
         <plugins>
+            <!--
+              Library / support-style usage: rely on mvn package (or verify), not quarkus:dev.
+              Explicit build goal ensures Quarkus augmentation runs on the package phase.
+            -->
             <plugin>
                 <groupId>io.quarkus</groupId>
                 <artifactId>quarkus-maven-plugin</artifactId>
                 <version>${quarkus.platform.version}</version>
                 <extensions>true</extensions>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>build</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
