@@ -4,7 +4,7 @@ import io.acme.scans.domain.ScanRequest;
 import io.temporal.activity.ActivityInterface;
 import io.temporal.activity.ActivityMethod;
 
-@ActivityInterface
+@ActivityInterface(namePrefix = "DtPrescan_")
 public interface DtPrescanActivities {
     @ActivityMethod
     byte[] fetchSbom(ScanRequest request);

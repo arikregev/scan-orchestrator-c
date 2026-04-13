@@ -4,7 +4,7 @@ import io.acme.scans.domain.ScanRequest;
 import io.temporal.activity.ActivityInterface;
 import io.temporal.activity.ActivityMethod;
 
-@ActivityInterface
+@ActivityInterface(namePrefix = "ScaManifest_")
 public interface ScaManifestScanActivities {
     @ActivityMethod
     String submit(ScanRequest request);
