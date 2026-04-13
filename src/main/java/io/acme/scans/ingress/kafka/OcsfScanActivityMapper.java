@@ -4,9 +4,9 @@ import com.google.protobuf.Struct;
 import com.google.protobuf.Value;
 import io.acme.scans.domain.ScanRequest;
 import io.acme.scans.domain.ScanTool;
+import io.acme.scans.ingress.ocsf.proto.KeyValueObject;
 import io.acme.scans.ingress.ocsf.proto.Metadata;
 import io.acme.scans.ingress.ocsf.proto.ScanActivity;
-import io.acme.scans.ingress.ocsf.proto.Tag;
 import jakarta.enterprise.context.ApplicationScoped;
 
 import java.util.Locale;
@@ -91,13 +91,23 @@ public class OcsfScanActivityMapper {
         if (metadata == null) {
             return Optional.empty();
         }
-        for (Tag tag : metadata.getTagsList()) {
+        for (KeyValueObject tag : metadata.getTagsList()) {
             if (name.equals(tag.getName())) {
-                String v = tag.getValue();
-                if (v == null || v.isBlank()) {
-                    return Optional.empty();
-                }
-                return Optional.of(v.trim());
+                return tagValue(tag);
+            }
+        }
+        return Optional.empty();
+    }
+
+    /** Prefer {@code value}; if empty, first non-blank entry in {@code values}. */
+    private static Optional<String> tagValue(KeyValueObject tag) {
+        String v = tag.getValue();
+        if (v != null && !v.isBlank()) {
+            return Optional.of(v.trim());
+        }
+        for (String s : tag.getValuesList()) {
+            if (s != null && !s.isBlank()) {
+                return Optional.of(s.trim());
             }
         }
         return Optional.empty();

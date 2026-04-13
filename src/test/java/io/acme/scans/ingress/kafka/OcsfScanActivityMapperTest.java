@@ -3,11 +3,11 @@ package io.acme.scans.ingress.kafka;
 import com.google.protobuf.Struct;
 import com.google.protobuf.Value;
 import io.acme.scans.domain.ScanTool;
+import io.acme.scans.ingress.ocsf.proto.KeyValueObject;
 import io.acme.scans.ingress.ocsf.proto.Metadata;
 import io.acme.scans.ingress.ocsf.proto.Product;
 import io.acme.scans.ingress.ocsf.proto.Scan;
 import io.acme.scans.ingress.ocsf.proto.ScanActivity;
-import io.acme.scans.ingress.ocsf.proto.Tag;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -20,8 +20,8 @@ class OcsfScanActivityMapperTest {
                 .setMetadata(Metadata.newBuilder()
                         .setOriginalEventUid("evt-123")
                         .setProduct(Product.newBuilder().setName("CHECKMARX").build())
-                        .addTags(Tag.newBuilder().setName("app_id").setValue("17045").build())
-                        .addTags(Tag.newBuilder().setName("component_name").setValue("var-service").build())
+                        .addTags(KeyValueObject.newBuilder().setName("app_id").setValue("17045").build())
+                        .addTags(KeyValueObject.newBuilder().setName("component_name").setValue("var-service").build())
                         .setVersion("1.2.0")
                         .build())
                 .setScan(Scan.newBuilder().setType("SAST").setUid("scan-uid").setTypeId("SCAN_TYPE_ID_OTHER").build())
@@ -55,8 +55,8 @@ class OcsfScanActivityMapperTest {
                 .setMetadata(Metadata.newBuilder()
                         .setOriginalEventUid("https://github.com/company/asrb.git:main:SECRETS")
                         .setProduct(Product.newBuilder().setName("GITLEAKS").build())
-                        .addTags(Tag.newBuilder().setName("app_id").setValue("99").build())
-                        .addTags(Tag.newBuilder().setName("component_name").setValue("asrb").build())
+                        .addTags(KeyValueObject.newBuilder().setName("app_id").setValue("99").build())
+                        .addTags(KeyValueObject.newBuilder().setName("component_name").setValue("asrb").build())
                         .setVersion("1.7.0")
                         .build())
                 .setScan(Scan.newBuilder().setType("SECRET").setUid("c3a79d29-87ac-40e9-bcae-e488f4afbdfb").build())

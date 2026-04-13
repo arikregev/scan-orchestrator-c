@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package ocsf.v1_7_0.objects;
+
+option java_multiple_files = true;
+option java_package = "io.acme.scans.ingress.ocsf.proto";
+option java_outer_classname = "ObjectsProto";
+
+// OCSF objects.KeyValueObject (v1.7.0 field numbers).
+message KeyValueObject {
+  string name = 1; // Caption: Name;
+  string value = 2; // Caption: Value;
+  repeated string values = 3; // Caption: Values;
+}
+
+// Minimal Product (ingress uses name only; extend when upstream schema is vendored).
+message Product {
+  string name = 1;
+}
+
+// OCSF objects.Metadata — subset with field numbers matching v1.7.0 for fields we consume.
+// Other on-wire fields are preserved as unknown fields by the protobuf runtime.
+message Metadata {
+  string original_event_uid = 19; // Caption: Original Event ID;
+  Product product = 22; // Caption: Product;
+  repeated KeyValueObject tags = 27; // Caption: Tags;
+  string version = 34; // Caption: Version;
+}
