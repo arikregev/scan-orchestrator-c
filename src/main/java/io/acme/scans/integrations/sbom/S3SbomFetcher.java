@@ -57,12 +57,15 @@ public class S3SbomFetcher implements SbomFetcher {
             return DefaultCredentialsProvider.create();
         }
 
-        String sessionToken = creds.sessionToken();
-        if (sessionToken != null && !sessionToken.isBlank()) {
+        String sessionToken = creds.sessionToken()
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .orElse("");
+        if (!sessionToken.isEmpty()) {
             return StaticCredentialsProvider.create(AwsSessionCredentials.create(
                     accessKeyId.trim(),
                     secretAccessKey.trim(),
-                    sessionToken.trim()
+                    sessionToken
             ));
         }
 

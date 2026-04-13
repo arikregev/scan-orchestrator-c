@@ -3,6 +3,8 @@ package io.acme.scans.config;
 import io.smallrye.config.ConfigMapping;
 import io.smallrye.config.WithName;
 
+import java.util.Optional;
+
 @ConfigMapping(prefix = "sbom.s3")
 public interface SbomS3Config {
     String bucket();
@@ -32,7 +34,7 @@ public interface SbomS3Config {
         String secretAccessKey();
 
         @WithName("session-token")
-        String sessionToken();
+        Optional<String> sessionToken();
     }
 }
 
