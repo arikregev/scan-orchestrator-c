@@ -6,6 +6,16 @@ option java_multiple_files = true;
 option java_package = "io.acme.scans.ingress.ocsf.proto";
 option java_outer_classname = "ObjectsProto";
 
+import "ocsf/v1_7_0/objects/enums/scan_type_id.proto";
+
+// OCSF objects.Scan (v1.7.0 field numbers).
+message Scan {
+  string name = 1; // Caption: Name;
+  string type = 2; // Caption: Type;
+  ocsf.v1_7_0.objects.enums.SCAN_TYPE_ID type_id = 3; // Caption: Type ID;
+  string uid = 4; // Caption: Unique ID;
+}
+
 // OCSF objects.KeyValueObject (v1.7.0 field numbers).
 message KeyValueObject {
   string name = 1; // Caption: Name;

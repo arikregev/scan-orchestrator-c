@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package ocsf.v1_7_0.objects.enums;
+
+option java_multiple_files = true;
+option java_package = "io.acme.scans.ingress.ocsf.proto";
+option java_outer_classname = "ScanTypeIdProto";
+
+enum SCAN_TYPE_ID {
+  SCAN_TYPE_ID_UNKNOWN = 0; // Type: OCSF_VALUE; EnumValue: 0;
+  SCAN_TYPE_ID_MANUAL = 1; // Type: OCSF_VALUE; EnumValue: 1;
+  SCAN_TYPE_ID_SCHEDULED = 2; // Type: OCSF_VALUE; EnumValue: 2;
+  SCAN_TYPE_ID_UPDATED_CONTENT = 3; // Type: OCSF_VALUE; EnumValue: 3;
+  SCAN_TYPE_ID_QUARANTINED_ITEMS = 4; // Type: OCSF_VALUE; EnumValue: 4;
+  SCAN_TYPE_ID_ATTACHED_MEDIA = 5; // Type: OCSF_VALUE; EnumValue: 5;
+  SCAN_TYPE_ID_USER_LOGON = 6; // Type: OCSF_VALUE; EnumValue: 6;
+  SCAN_TYPE_ID_ELAM = 7; // Type: OCSF_VALUE; EnumValue: 7;
+  SCAN_TYPE_ID_OTHER = 99; // Type: OCSF_VALUE; EnumValue: 99;
+}

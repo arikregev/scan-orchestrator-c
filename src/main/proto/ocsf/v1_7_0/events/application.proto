@@ -17,15 +17,9 @@ message ScanActivity {
   string class_name = 11;
 
   ocsf.v1_7_0.objects.Metadata metadata = 30;
-  Scan scan = 51;
+  ocsf.v1_7_0.objects.Scan scan = 51;
 
   int64 time = 60;
 
   google.protobuf.Struct unmapped = 65;
-}
-
-message Scan {
-  string type = 1;
-  string uid = 2;
-  string type_id = 3;
 }

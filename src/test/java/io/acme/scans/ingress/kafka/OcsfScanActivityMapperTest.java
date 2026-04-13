@@ -6,6 +6,7 @@ import io.acme.scans.domain.ScanTool;
 import io.acme.scans.ingress.ocsf.proto.KeyValueObject;
 import io.acme.scans.ingress.ocsf.proto.Metadata;
 import io.acme.scans.ingress.ocsf.proto.Product;
+import io.acme.scans.ingress.ocsf.proto.SCAN_TYPE_ID;
 import io.acme.scans.ingress.ocsf.proto.Scan;
 import io.acme.scans.ingress.ocsf.proto.ScanActivity;
 import org.junit.jupiter.api.Test;
@@ -24,7 +25,11 @@ class OcsfScanActivityMapperTest {
                         .addTags(KeyValueObject.newBuilder().setName("component_name").setValue("var-service").build())
                         .setVersion("1.2.0")
                         .build())
-                .setScan(Scan.newBuilder().setType("SAST").setUid("scan-uid").setTypeId("SCAN_TYPE_ID_OTHER").build())
+                .setScan(Scan.newBuilder()
+                        .setType("SAST")
+                        .setUid("scan-uid")
+                        .setTypeId(SCAN_TYPE_ID.SCAN_TYPE_ID_OTHER)
+                        .build())
                 .setUnmapped(Struct.newBuilder()
                         .putFields("branch_name", Value.newBuilder().setStringValue("main").build())
                         .putFields("build_id", Value.newBuilder().setStringValue("69662bffca01a04b3436f2e0").build())
@@ -59,7 +64,11 @@ class OcsfScanActivityMapperTest {
                         .addTags(KeyValueObject.newBuilder().setName("component_name").setValue("asrb").build())
                         .setVersion("1.7.0")
                         .build())
-                .setScan(Scan.newBuilder().setType("SECRET").setUid("c3a79d29-87ac-40e9-bcae-e488f4afbdfb").build())
+                .setScan(Scan.newBuilder()
+                        .setType("SECRET")
+                        .setUid("c3a79d29-87ac-40e9-bcae-e488f4afbdfb")
+                        .setTypeId(SCAN_TYPE_ID.SCAN_TYPE_ID_OTHER)
+                        .build())
                 .setUnmapped(Struct.newBuilder()
                         .putFields("branch_name", Value.newBuilder().setStringValue("main").build())
                         .putFields("code_repository_url", Value.newBuilder()
