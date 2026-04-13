@@ -4,6 +4,7 @@ import io.acme.scans.config.TemporalConfig;
 import io.acme.scans.domain.ScanRequest;
 import io.acme.scans.domain.ScanTool;
 import io.acme.scans.temporal.workflow.DtPrescanWorkflow;
+import io.acme.scans.temporal.workflow.GitleaksScanWorkflow;
 import io.acme.scans.temporal.workflow.SastScanWorkflow;
 import io.acme.scans.temporal.workflow.ScaManifestScanWorkflow;
 import io.temporal.client.WorkflowClient;
@@ -29,6 +30,11 @@ public class ScanWorkflowSubmitter {
 
         if (request.tool() == ScanTool.SAST) {
             SastScanWorkflow wf = workflowClient.newWorkflowStub(SastScanWorkflow.class, options);
+            WorkflowClient.start(wf::run, request);
+            return;
+        }
+        if (request.tool() == ScanTool.GITLEAKS) {
+            GitleaksScanWorkflow wf = workflowClient.newWorkflowStub(GitleaksScanWorkflow.class, options);
             WorkflowClient.start(wf::run, request);
             return;
         }

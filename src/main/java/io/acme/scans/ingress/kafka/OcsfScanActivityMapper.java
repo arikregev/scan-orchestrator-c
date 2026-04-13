@@ -1,51 +1,80 @@
 package io.acme.scans.ingress.kafka;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.protobuf.Struct;
+import com.google.protobuf.Value;
 import io.acme.scans.domain.ScanRequest;
 import io.acme.scans.domain.ScanTool;
+import io.acme.scans.ingress.ocsf.proto.Metadata;
+import io.acme.scans.ingress.ocsf.proto.ScanActivity;
+import io.acme.scans.ingress.ocsf.proto.Tag;
 import jakarta.enterprise.context.ApplicationScoped;
 
-import java.io.IOException;
 import java.util.Locale;
 import java.util.Optional;
 
 @ApplicationScoped
 public class OcsfScanActivityMapper {
-    private final ObjectMapper objectMapper;
 
-    public OcsfScanActivityMapper(ObjectMapper objectMapper) {
-        this.objectMapper = objectMapper;
-    }
-
-    public ScanRequest fromJson(String json) {
-        final JsonNode root;
-        try {
-            root = objectMapper.readTree(json);
-        } catch (IOException e) {
-            throw new IllegalArgumentException("Invalid JSON", e);
+    public ScanRequest fromProto(ScanActivity root) {
+        if (root == null) {
+            throw new IllegalArgumentException("ScanActivity payload is null");
         }
 
-        Integer appId = optTagValue(root, "app_id")
+        Integer appId = optTagValue(root.getMetadata(), "app_id")
                 .map(String::trim)
                 .filter(v -> !v.isEmpty())
                 .map(Integer::valueOf)
                 .orElse(null);
 
-        String componentName = optTagValue(root, "component_name").orElse(null);
-        String buildId = optFieldStringValue(root, "build_id").orElse(null);
-        String repoUrl = optFieldStringValue(root, "code_repository_url").orElse(null);
-        String commitSha = optFieldStringValue(root, "git_commit_id").orElse(null);
-        String branchName = optFieldStringValue(root, "branch_name").orElse(null);
-        String sourceUrl = optFieldStringValue(root, "source_url").orElse(null);
-        String originalEventUid = optText(root, "metadata", "original_event_uid").orElse(null);
+        String componentName = optTagValue(root.getMetadata(), "component_name").orElse(null);
+        String buildId = optUnmappedString(root, "build_id").orElse(null);
+        String repoUrl = optUnmappedString(root, "code_repository_url").orElse(null);
+        String commitSha = optUnmappedString(root, "git_commit_id").orElse(null);
+        String branchName = optUnmappedString(root, "branch_name").orElse(null);
+        String sourceUrl = optUnmappedString(root, "source_url").orElse(null);
 
-        ScanTool tool = optText(root, "scan", "type")
-                .map(s -> s.trim().toUpperCase(Locale.ROOT))
-                .map(OcsfScanActivityMapper::toTool)
-                .orElse(null);
+        Optional<String> originalEventUid = Optional.empty();
+        if (root.hasMetadata()) {
+            String ouid = root.getMetadata().getOriginalEventUid();
+            originalEventUid = (ouid == null || ouid.isBlank()) ? Optional.empty() : Optional.of(ouid.trim());
+        }
 
-        return new ScanRequest(appId, componentName, buildId, tool, repoUrl, commitSha, branchName, sourceUrl, originalEventUid);
+        ScanTool tool = resolveTool(root);
+
+        return new ScanRequest(
+                appId,
+                componentName,
+                buildId,
+                tool,
+                repoUrl,
+                commitSha,
+                branchName,
+                sourceUrl,
+                originalEventUid.orElse(null));
+    }
+
+    private static ScanTool resolveTool(ScanActivity root) {
+        String scanType = "";
+        if (root.hasScan()) {
+            String t = root.getScan().getType();
+            scanType = t == null ? "" : t.trim();
+        }
+        if (!scanType.isEmpty()) {
+            try {
+                return toTool(scanType.toUpperCase(Locale.ROOT));
+            } catch (IllegalArgumentException ignored) {
+                // fall through to product-based resolution
+            }
+        }
+        String product = "";
+        if (root.hasMetadata() && root.getMetadata().hasProduct()) {
+            String n = root.getMetadata().getProduct().getName();
+            product = n == null ? "" : n.trim();
+        }
+        if ("GITLEAKS".equalsIgnoreCase(product)) {
+            return ScanTool.GITLEAKS;
+        }
+        throw new IllegalArgumentException("Unsupported scan.type: " + scanType + " (product=" + product + ")");
     }
 
     private static ScanTool toTool(String scanTypeUpper) {
@@ -58,46 +87,41 @@ public class OcsfScanActivityMapper {
         };
     }
 
-    private static Optional<String> optTagValue(JsonNode root, String name) {
-        JsonNode tags = root.path("tags");
-        if (!tags.isArray()) return Optional.empty();
-        for (JsonNode tag : tags) {
-            String tagName = tag.path("name").asText(null);
-            if (name.equals(tagName)) {
-                JsonNode value = tag.get("value");
-                if (value == null || value.isNull()) return Optional.empty();
-                if (value.isTextual()) return Optional.of(value.asText());
-                // Some producers wrap value like { "value": "123" }
-                return Optional.ofNullable(value.asText(null));
+    private static Optional<String> optTagValue(Metadata metadata, String name) {
+        if (metadata == null) {
+            return Optional.empty();
+        }
+        for (Tag tag : metadata.getTagsList()) {
+            if (name.equals(tag.getName())) {
+                String v = tag.getValue();
+                if (v == null || v.isBlank()) {
+                    return Optional.empty();
+                }
+                return Optional.of(v.trim());
             }
         }
         return Optional.empty();
     }
 
-    private static Optional<String> optFieldStringValue(JsonNode root, String key) {
-        // Screenshot shows a protobuf-ish shape: fields[{key:"build_id", value:{string_value:"..."}}]
-        JsonNode fields = root.path("fields");
-        if (!fields.isArray()) return Optional.empty();
-        for (JsonNode field : fields) {
-            if (key.equals(field.path("key").asText(null))) {
-                JsonNode value = field.path("value");
-                if (value.isMissingNode() || value.isNull()) return Optional.empty();
-                if (value.isTextual()) return Optional.of(value.asText());
-                JsonNode stringValue = value.get("string_value");
-                if (stringValue != null && stringValue.isTextual()) return Optional.of(stringValue.asText());
-                // fallback
-                return Optional.ofNullable(value.asText(null));
+    private static Optional<String> optUnmappedString(ScanActivity root, String key) {
+        if (!root.hasUnmapped()) {
+            return Optional.empty();
+        }
+        Struct struct = root.getUnmapped();
+        if (struct.getFieldsCount() == 0) {
+            return Optional.empty();
+        }
+        Value v = struct.getFieldsMap().get(key);
+        if (v == null) {
+            return Optional.empty();
+        }
+        if (v.getKindCase() == Value.KindCase.STRING_VALUE) {
+            String s = v.getStringValue();
+            if (s == null || s.isBlank()) {
+                return Optional.empty();
             }
+            return Optional.of(s.trim());
         }
         return Optional.empty();
-    }
-
-    private static Optional<String> optText(JsonNode root, String... path) {
-        JsonNode cur = root;
-        for (String p : path) cur = cur.path(p);
-        if (cur.isMissingNode() || cur.isNull()) return Optional.empty();
-        String v = cur.asText(null);
-        return v == null || v.isBlank() ? Optional.empty() : Optional.of(v);
     }
 }
-

@@ -2,9 +2,11 @@ package io.acme.scans.temporal.worker;
 
 import io.acme.scans.config.TemporalConfig;
 import io.acme.scans.temporal.activity.DtPrescanActivitiesImpl;
+import io.acme.scans.temporal.activity.GitleaksScanActivitiesImpl;
 import io.acme.scans.temporal.activity.SastScanActivitiesImpl;
 import io.acme.scans.temporal.activity.ScaManifestScanActivitiesImpl;
 import io.acme.scans.temporal.workflow.DtPrescanWorkflowImpl;
+import io.acme.scans.temporal.workflow.GitleaksScanWorkflowImpl;
 import io.acme.scans.temporal.workflow.SastScanWorkflowImpl;
 import io.acme.scans.temporal.workflow.ScaManifestScanWorkflowImpl;
 import io.temporal.client.WorkflowClient;
@@ -26,18 +28,21 @@ public class TemporalWorkerRunner {
     public TemporalWorkerRunner(WorkflowClient workflowClient, TemporalConfig config,
                                 DtPrescanActivitiesImpl dtPrescanActivities,
                                 SastScanActivitiesImpl sastActivities,
-                                ScaManifestScanActivitiesImpl scaManifestActivities) {
+                                ScaManifestScanActivitiesImpl scaManifestActivities,
+                                GitleaksScanActivitiesImpl gitleaksActivities) {
         this.factory = WorkerFactory.newInstance(workflowClient);
         Worker worker = factory.newWorker(config.taskQueue());
         worker.registerWorkflowImplementationTypes(
                 DtPrescanWorkflowImpl.class,
                 SastScanWorkflowImpl.class,
-                ScaManifestScanWorkflowImpl.class
+                ScaManifestScanWorkflowImpl.class,
+                GitleaksScanWorkflowImpl.class
         );
         worker.registerActivitiesImplementations(
                 dtPrescanActivities,
                 sastActivities,
-                scaManifestActivities
+                scaManifestActivities,
+                gitleaksActivities
         );
     }
 

@@ -2,6 +2,7 @@ package io.acme.scans.ingress.kafka;
 
 import io.acme.scans.domain.ScanRequest;
 import io.acme.scans.domain.ScanTool;
+import io.acme.scans.ingress.ocsf.proto.ScanActivity;
 import io.acme.scans.temporal.client.ScanWorkflowSubmitter;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.validation.ConstraintViolation;
@@ -34,8 +35,11 @@ public class KafkaScanActivityConsumer {
     }
 
     @Incoming("ocsf-scan-activity")
-    public void onMessage(String payload) {
-        ScanRequest request = mapper.fromJson(payload);
+    public void onMessage(ScanActivity payload) {
+        if (payload == null) {
+            throw new IllegalArgumentException("Empty OCSF ScanActivity message");
+        }
+        ScanRequest request = mapper.fromProto(payload);
 
         Set<ConstraintViolation<ScanRequest>> violations = validator.validate(request);
         if (!violations.isEmpty()) {

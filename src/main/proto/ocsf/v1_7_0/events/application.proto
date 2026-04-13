@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+package ocsf.v1_7_0.events.application;
+
+option java_multiple_files = true;
+option java_package = "io.acme.scans.ingress.ocsf.proto";
+option java_outer_classname = "ApplicationProto";
+
+import "google/protobuf/struct.proto";
+
+// OCSF Scan Activity (v1.7.0) — subset used for Kafka ingress.
+// Top-level field numbers align with OCSF application ScanActivity where listed.
+message ScanActivity {
+  string activity_name = 4;
+  string category_name = 9;
+  string class_name = 11;
+
+  Metadata metadata = 30;
+  Scan scan = 51;
+
+  int64 time = 60;
+
+  google.protobuf.Struct unmapped = 65;
+}
+
+// Minimal nested shapes (logical OCSF objects.*) for orchestration fields.
+message Metadata {
+  string original_event_uid = 1;
+  Product product = 2;
+  repeated Tag tags = 3;
+  string version = 4;
+}
+
+message Product {
+  string name = 1;
+}
+
+message Tag {
+  string name = 1;
+  string value = 2;
+}
+
+message Scan {
+  string type = 1;
+  string uid = 2;
+  string type_id = 3;
+}
